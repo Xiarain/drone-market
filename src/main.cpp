@@ -19,6 +19,7 @@
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <geometry_msgs/Twist.h>
+#include <std_msgs/Empty.h>
 
 using namespace cv;
 
@@ -29,6 +30,11 @@ Mat img_gray;
 Mat img_rgb;
 
 bool flag_getnewimage = false;
+
+geometry_msgs::Twist twist_msg;
+ros::Publisher pub_empty_takeoff;
+std_msgs::Empty emp_msg;
+geometry_msgs::Twist twist_msg_hover;
 
 void process(const sensor_msgs::ImageConstPtr& cam_image)
 {
@@ -49,10 +55,6 @@ void process(const sensor_msgs::ImageConstPtr& cam_image)
 
 	cvtColor(img_rgb,img_gray,CV_RGB2GRAY);
 
-	// imshow(WINDOW,img_rgb);
-	//imshow("原始图像",img_gray);
-	//cvWaitKey(1);
-
 	flag_getnewimage = true;
 }
 
@@ -62,32 +64,41 @@ int main(int argc, char **argv)
 	ros::init(argc,argv,"droneTest");
     ros::NodeHandle n;
     image_transport::ImageTransport it(n);
-    image_transport::Subscriber image_sub = it.subscribe("/ardrone/image_raw",1,process);
-
+    ros::Publisher pub_twist;
+    image_transport::Subscriber image_sub = it.subscribe("/quadrotor/ardrone/bottom/ardrone/bottom/image_raw",1,process);
+    pub_twist = n.advertise<geometry_msgs::Twist>("/quadrotor/cmd_vel", 1);
+    pub_empty_takeoff = n.advertise<std_msgs::Empty>("/quadrotor/ardrone/takeoff", 1);
     ros::Publisher chatter_pub = n.advertise<geometry_msgs::Vector3>("chatter", 1000);
     geometry_msgs::Vector3 msg_marker;
- //    VideoCapture camCapture;
-
-	// //设置视频流中帧的宽度和高度
-	// camCapture.set(CV_CAP_PROP_FRAME_WIDTH, 340);
-	// camCapture.set(CV_CAP_PROP_FRAME_HEIGHT, 240);
-	
-	// if (!camCapture.open(0))
-	// {
-	// 	std::cout << "can't open cam!" << std::endl;
-	// }
-	
-	// //设置视频流中帧的宽度和高度
-	// camCapture.set(CV_CAP_PROP_FRAME_WIDTH, 340);
-	// camCapture.set(CV_CAP_PROP_FRAME_HEIGHT, 240);
-
+    geometry_msgs::Vector3 msg_marker_angle;
 	MarkerDetector markCapture;
 	Mat frame;
 
+	ros::Rate loop_rate(30);//频率很重要，不能大于30Hz
+
+	double start_time;
+	start_time =(double)ros::Time::now().toSec();
+
+	twist_msg_hover.linear.x=0.0; 
+	twist_msg_hover.linear.y=0.0;
+	twist_msg_hover.linear.z=0.0;
+	twist_msg_hover.angular.x=0.0; 
+	twist_msg_hover.angular.y=0.0;
+	twist_msg_hover.angular.z=0.0;  
+
+	// 起飞
+	while ((double)ros::Time::now().toSec()< start_time + 20.0)
+	{ //takeoff
+
+		pub_empty_takeoff.publish(emp_msg); 
+		pub_twist.publish(twist_msg_hover); 
+
+		ros::spinOnce();
+		loop_rate.sleep();
+	}//while takeoff
+
 	while (ros::ok())
 	{
-		//camCapture >> frame; 
-
 
 	 	if (flag_getnewimage == true)
 	 	{
@@ -149,16 +160,31 @@ int main(int argc, char **argv)
 
 	 		std::cout << markCapture.getTransformations() << std::endl;
 
-	 		msg_marker.x = markCapture.getTransformations()[0];
-	 		msg_marker.y = markCapture.getTransformations()[1];
-	 		msg_marker.z = markCapture.getTransformations()[2];
+	 		// 欧拉角
+	 		msg_marker.x = markCapture.getTransformations()[3];
+	 		msg_marker.y = markCapture.getTransformations()[4];
+	 		msg_marker.z = markCapture.getTransformations()[5];
 
+	 		msg_marker_angle.z = markCapture.getTransformations()[2];
+
+	 		twist_msg.linear.x = 0.5 * (0 - msg_marker.x);
+	 		twist_msg.linear.y = 0.5 * (0 - msg_marker.y);
+	 		// twist_msg.linear.z = 0.5 * (1 + msg_marker.z);
+			twist_msg.linear.z = 0;
+
+			// twist_msg.angular.z = 0.5 * (0 - msg_marker_angle.z); 
+
+	 		if (msg_marker.z == 0) twist_msg.linear.z = 0;
+	 		if (msg_marker.x == 0) twist_msg.linear.x = 0;
+	 		if (msg_marker.y == 0) twist_msg.linear.y = 0;
 	 		// ROS publish 
 	 		chatter_pub.publish(msg_marker);
+	 		pub_twist.publish(twist_msg);
 	 	}
 
  		//在循环中，必须要有，通过这个才能到cb函数中
   		ros::spinOnce();
+  		loop_rate.sleep();
 
 		cvWaitKey(1);
 
@@ -173,6 +199,8 @@ int main(int argc, char **argv)
 		{
 			cv::waitKey();
 		}
+
+
 	}
 
 		
