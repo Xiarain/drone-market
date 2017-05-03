@@ -84,10 +84,10 @@ int main(int argc, char **argv)
 	twist_msg_hover.linear.z=0.0;
 	twist_msg_hover.angular.x=0.0; 
 	twist_msg_hover.angular.y=0.0;
-	twist_msg_hover.angular.z=0.0;  
+	twist_msg_hover.angular.z=3.0;  
 
 	// 起飞
-	while ((double)ros::Time::now().toSec()< start_time + 20.0)
+	while ((double)ros::Time::now().toSec()< start_time + 30.0)
 	{ //takeoff
 
 		pub_empty_takeoff.publish(emp_msg); 
@@ -152,34 +152,38 @@ int main(int argc, char **argv)
 				{
 					std::cout << "marker index: " << i << "   " << "marker ID: " << std::bitset<10>(markCapture.m_markers[i].m_id) << std::endl;
 				}
+
+				std::cout << markCapture.getTransformations() << std::endl;
+
+		 		// 欧拉角!!!
+		 		msg_marker.x = markCapture.getTransformations()[3];
+		 		msg_marker.y = markCapture.getTransformations()[4];
+		 		msg_marker.z = markCapture.getTransformations()[5];
+
+		 		// x y z 位置信息
+		 		msg_marker_angle.x = markCapture.getTransformations()[0];
+		 		msg_marker_angle.y = markCapture.getTransformations()[1];
+		 		msg_marker_angle.z = markCapture.getTransformations()[2];
+
+		 		twist_msg.linear.x = 1.3 * (0 + msg_marker_angle.y);
+		 		twist_msg.linear.y = 1.3 * (0 + msg_marker_angle.x);
+		 		twist_msg.linear.z = -1 * (-0.45 - msg_marker_angle.z);
+
+				// twist_msg.angular.z = 0.5 * (0 - msg_marker_angle.z); 
+
+		 		if (msg_marker.z == 0) twist_msg.linear.z = 0;
+		 		if (msg_marker.x == 0) twist_msg.linear.x = 0;
+		 		if (msg_marker.y == 0) twist_msg.linear.y = 0;
+		 		// ROS publish 
+		 		chatter_pub.publish(msg_marker);
+		 		pub_twist.publish(twist_msg);
 			}
 			else
 			{
 				std::cout << "no marker!" << std::endl;
 			}
 
-	 		std::cout << markCapture.getTransformations() << std::endl;
-
-	 		// 欧拉角
-	 		msg_marker.x = markCapture.getTransformations()[3];
-	 		msg_marker.y = markCapture.getTransformations()[4];
-	 		msg_marker.z = markCapture.getTransformations()[5];
-
-	 		msg_marker_angle.z = markCapture.getTransformations()[2];
-
-	 		twist_msg.linear.x = 0.5 * (0 - msg_marker.x);
-	 		twist_msg.linear.y = 0.5 * (0 - msg_marker.y);
-	 		// twist_msg.linear.z = 0.5 * (1 + msg_marker.z);
-			twist_msg.linear.z = 0;
-
-			// twist_msg.angular.z = 0.5 * (0 - msg_marker_angle.z); 
-
-	 		if (msg_marker.z == 0) twist_msg.linear.z = 0;
-	 		if (msg_marker.x == 0) twist_msg.linear.x = 0;
-	 		if (msg_marker.y == 0) twist_msg.linear.y = 0;
-	 		// ROS publish 
-	 		chatter_pub.publish(msg_marker);
-	 		pub_twist.publish(twist_msg);
+	 		
 	 	}
 
  		//在循环中，必须要有，通过这个才能到cb函数中

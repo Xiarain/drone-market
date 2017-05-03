@@ -2,13 +2,13 @@
 #include <iostream>
 
 #define length (0.039f) //二维码（地标） 长度的二分之一
-
+// 374.6706070969281, 0.0, 320.5, 0.0, 374.6706070969281, 180.5, 0.0, 0.0, 1.0
 MarkerDetector::MarkerDetector(void)
 {
 	m_minContourLengthAllowed = 100.0f; //相机内参矩阵 A
 
-	m_camMat = (Mat_<float>(3,3) << 665.756319,0,309.827142,
-									0,668.022760,166.151895,
+	m_camMat = (Mat_<float>(3,3) << 374.67060,0,320.5,
+									0,374.670607,180.5,
 									0,0,1);
 	m_distCoeff = (Mat_<float>(4,1) << -0.011408,0.022399,0.004303,-0.002027);
 
