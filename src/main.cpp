@@ -147,29 +147,30 @@ int main(int argc, char **argv)
 				std::cout << markCapture.getTransformations() << std::endl;
 
 		 		// 欧拉角!!!
-		 		msg_marker.x = markCapture.getTransformations()[3];
-		 		msg_marker.y = markCapture.getTransformations()[4];
+		 		msg_marker_angle.x = markCapture.getTransformations()[3];
+		 		msg_marker_angle.y = markCapture.getTransformations()[4];
 		 		msg_marker.z = markCapture.getTransformations()[5];
 
 		 		// x y z 位置信息
-		 		msg_marker_angle.x = markCapture.getTransformations()[0];
-		 		msg_marker_angle.y = markCapture.getTransformations()[1];
-		 		msg_marker_angle.z = markCapture.getTransformations()[2];
+		 		msg_marker.x = markCapture.getTransformations()[0];
+		 		msg_marker.y = markCapture.getTransformations()[1];
+		 		msg_marker.z = markCapture.getTransformations()[2];
 
-		 		twist_msg.linear.x = 1.3 * (0 + msg_marker_angle.y);
-		 		twist_msg.linear.y = 1.3 * (0 + msg_marker_angle.x);
-		 		twist_msg.linear.z = -1 * (-0.45 - msg_marker_angle.z);
+		 		// PID 控制器输出
+		 		twist_msg.linear.x = 1.3 * (0 + msg_marker.y);
+		 		twist_msg.linear.y = 1.3 * (0 + msg_marker.x);
+		 		twist_msg.linear.z = -1 * (-0.45 - msg_marker.z); // 高度控制
 
-				// twist_msg.angular.z = 0.5 * (0 - msg_marker_angle.z); 
-
-		 		if (msg_marker_angle.z == 0) twist_msg.linear.z = 0;
-		 		if (msg_marker_angle.x == 0) twist_msg.linear.x = 0;
-		 		if (msg_marker_angle.y == 0) twist_msg.linear.y = 0;
+		 		if (msg_marker.z == 0) twist_msg.linear.z = 0;
+		 		if (msg_marker.x == 0) twist_msg.linear.x = 0;
+		 		if (msg_marker.y == 0) twist_msg.linear.y = 0;
+		 		
 		 		// ROS publish 
 		 		chatter_pub.publish(msg_marker);
 		 		pub_twist.publish(twist_msg);
 			}
-			else
+			else // 如果没有找到的话，就往后面飞，这个是用于初始化过程的，让无人机找到地标。
+				 // 这样比较简陋，而且如果无人机在后续飞行的过程中，找不到地标的话，还是往后面飞，这样是不符合逻辑的。 
 			{
 				std::cout << "no marker!" << std::endl;
 
