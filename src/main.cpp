@@ -76,26 +76,17 @@ int main(int argc, char **argv)
 
 	ros::Rate loop_rate(30);//频率很重要，不能大于30Hz
 
-	double start_time;
-	start_time =(double)ros::Time::now().toSec();
-
 	twist_msg_hover.linear.x=0.0; 
 	twist_msg_hover.linear.y=0.0;
 	twist_msg_hover.linear.z=0.0;
 	twist_msg_hover.angular.x=0.0; 
 	twist_msg_hover.angular.y=0.0;
-	twist_msg_hover.angular.z=3.0;  
-
-	// 起飞
-	while ((double)ros::Time::now().toSec()< start_time + 30.0)
-	{ //takeoff
-
-		pub_empty_takeoff.publish(emp_msg); 
-		pub_twist.publish(twist_msg_hover); 
-
-		ros::spinOnce();
-		loop_rate.sleep();
-	}//while takeoff
+	twist_msg_hover.angular.z=3.0;
+	// ar drone take off
+	while (pub_empty_takeoff.getNumSubscribers() == 0) {
+		sleep(1); //sleep a bit
+		}
+	pub_empty_takeoff.publish(std_msgs::Empty()); //now we're ready to go
 
 	while (ros::ok())
 	{
@@ -171,9 +162,9 @@ int main(int argc, char **argv)
 
 				// twist_msg.angular.z = 0.5 * (0 - msg_marker_angle.z); 
 
-		 		if (msg_marker.z == 0) twist_msg.linear.z = 0;
-		 		if (msg_marker.x == 0) twist_msg.linear.x = 0;
-		 		if (msg_marker.y == 0) twist_msg.linear.y = 0;
+		 		if (msg_marker_angle.z == 0) twist_msg.linear.z = 0;
+		 		if (msg_marker_angle.x == 0) twist_msg.linear.x = 0;
+		 		if (msg_marker_angle.y == 0) twist_msg.linear.y = 0;
 		 		// ROS publish 
 		 		chatter_pub.publish(msg_marker);
 		 		pub_twist.publish(twist_msg);
@@ -181,6 +172,12 @@ int main(int argc, char **argv)
 			else
 			{
 				std::cout << "no marker!" << std::endl;
+
+				twist_msg.linear.z = 0;
+				twist_msg.linear.x = -0.35;
+				twist_msg.linear.y = 0;
+
+				pub_twist.publish(twist_msg);
 			}
 
 	 		
@@ -206,11 +203,6 @@ int main(int argc, char **argv)
 
 
 	}
-
-		
-
-	 
-
 	return 0;
 
 }
